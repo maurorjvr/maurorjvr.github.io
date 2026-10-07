@@ -1,0 +1,123 @@
+// Mobile menu toggle
+const navToggle = document.getElementById('navToggle');
+const mobileMenu = document.getElementById('mobileMenu');
+if (navToggle && mobileMenu) {
+  navToggle.addEventListener('click', () => {
+    const isOpen = mobileMenu.classList.toggle('open');
+    navToggle.setAttribute('aria-expanded', isOpen);
+  });
+  mobileMenu.querySelectorAll('a').forEach(a => {
+    a.addEventListener('click', () => {
+      mobileMenu.classList.remove('open');
+      navToggle.setAttribute('aria-expanded', 'false');
+    });
+  });
+}
+
+// Actieve link markeren op basis van huidige pagina
+(function setActiveNav(){
+  const current = window.location.pathname.split('/').pop() || 'index.html';
+  document.querySelectorAll('.nav-links a, .mobile-menu a').forEach(a => {
+    const href = a.getAttribute('href');
+    if (href === current) a.classList.add('active');
+  });
+})();
+
+// Terminal typing animatie (alleen aanwezig op de homepage)
+const termBody = document.getElementById('termBody');
+if (termBody) {
+  const lines = [
+    { type: 'prompt', text: '$ whoami' },
+    { type: 'out', text: 'Mauro van Ravenswaaij — software developer i.o.' },
+    { type: 'prompt', text: '$ cat opleiding.txt' },
+    { type: 'out', text: 'Technova College, Ede — Software Developer' },
+    { type: 'prompt', text: '$ ./start-project.sh' },
+    { type: 'accent', text: 'Klaar om te bouwen ✓' }
+  ];
+
+  function typeTerminal(){
+    let li = 0, ci = 0;
+    const caret = document.createElement('span');
+    caret.className = 'caret';
+
+    function step(){
+      if(li >= lines.length){
+        const activeLine = termBody.lastElementChild;
+        if(activeLine) activeLine.appendChild(caret);
+        return;
+      }
+      const line = lines[li];
+      let lineEl = termBody.children[li];
+      if(!lineEl){
+        lineEl = document.createElement('div');
+        lineEl.className = line.type === 'prompt' ? 'prompt' : (line.type === 'accent' ? 'accent-t' : 'out');
+        termBody.appendChild(lineEl);
+      }
+      if(ci <= line.text.length){
+        lineEl.textContent = line.text.slice(0, ci);
+        lineEl.appendChild(caret);
+        ci++;
+        setTimeout(step, line.type === 'prompt' ? 32 : 14);
+      } else {
+        ci = 0;
+        li++;
+        setTimeout(step, 260);
+      }
+    }
+    step();
+  }
+
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    lines.forEach(line => {
+      const lineEl = document.createElement('div');
+      lineEl.className = line.type === 'prompt' ? 'prompt' : (line.type === 'accent' ? 'accent-t' : 'out');
+      lineEl.textContent = line.text;
+      termBody.appendChild(lineEl);
+    });
+  } else {
+    typeTerminal();
+  }
+}
+
+// Contactformulier — verstuurt via Formspree (of een vergelijkbare formulierdienst)
+const contactForm = document.getElementById('contactForm');
+const formStatus = document.getElementById('formStatus');
+
+if (contactForm) {
+  contactForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    if (contactForm.action.includes('JOUW_FORM_ID')) {
+      formStatus.textContent = 'Vul eerst je eigen Formspree form-ID in bij het "action" attribuut van het formulier.';
+      formStatus.style.color = 'var(--accent)';
+      return;
+    }
+
+    const submitBtn = contactForm.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    formStatus.textContent = 'Bezig met versturen...';
+    formStatus.style.color = 'var(--ink-dim)';
+
+    try {
+      const response = await fetch(contactForm.action, {
+        method: 'POST',
+        body: new FormData(contactForm),
+        headers: { 'Accept': 'application/json' }
+      });
+
+      if (response.ok) {
+        formStatus.textContent = 'Bedankt! Je bericht is verstuurd.';
+        formStatus.style.color = 'var(--mint)';
+        contactForm.reset();
+      } else {
+        formStatus.textContent = 'Er ging iets mis. Probeer het later nog eens.';
+        formStatus.style.color = 'var(--accent)';
+      }
+    } catch (err) {
+      formStatus.textContent = 'Er ging iets mis. Controleer je internetverbinding.';
+      formStatus.style.color = 'var(--accent)';
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
+}
